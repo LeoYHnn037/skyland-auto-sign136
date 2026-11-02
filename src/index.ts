@@ -105,7 +105,15 @@ async function getRoles(cred: Cred, dId: string): Promise<Json[]> {
   const roles: Json[] = [];
   for (const game of result.data.data?.list ?? []) {
     if (!(["arknights", "endfield"] as string[]).includes(game.appCode)) continue;
-    for (const role of game.bindingList ?? []) roles.push({ ...role, appCode: game.appCode });
+    for (const binding of game.bindingList ?? []) {
+      if (game.appCode === "endfield") {
+        for (const role of binding.roles ?? []) {
+          roles.push({ ...binding, ...role, appCode: game.appCode });
+        }
+      } else {
+        roles.push({ ...binding, appCode: game.appCode });
+      }
+    }
   }
   return roles;
 }
@@ -158,7 +166,7 @@ async function pushResult(env: Env, logs: string[]): Promise<void> {
       method: "POST", headers: { "content-type": "application/json" }, body: jsonBody({ title, desp: content }),
     }));
   }
-  if (env.QMSG_KEY) await sendPush("Qmsg", () => fetch(`https://qmsg.zendee.cn/jsend/${env.QMSG_KEY}`, {
+  if (env.QMSG_KEY) await sendPush("Qmsg", () => fetch(`https://qmsg.zendee.cn/v3/jsend/${env.QMSG_KEY}`, {
     method: "POST", headers: { "content-type": "application/json" }, body: jsonBody({ msg: `${title}\n${content}`, qq: "", bot: "" }),
   }));
   if (env.PUSHPLUS_KEY) await sendPush("PushPlus", () => fetch("https://www.pushplus.plus/send", {
